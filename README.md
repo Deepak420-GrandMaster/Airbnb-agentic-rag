@@ -7,6 +7,7 @@ Built as an end-to-end applied-AI project: data pipeline → vector retrieval �
 ---
 
 ## 🎥 Demo
+Link:- https://deepak420-grandmaster-airbnb-agentic-rag-app-s4hmxa.streamlit.app/
 <img width="1836" height="790" alt="image" src="https://github.com/user-attachments/assets/008b976c-9a98-4bea-9bdc-de156eaf26ce" />
 
 
