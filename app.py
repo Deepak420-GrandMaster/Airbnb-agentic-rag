@@ -5,7 +5,7 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 from groq import Groq
 
-st.set_page_config(page_title="Airbnb Travel Agent", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="US Airbnb Travel Agent", page_icon="🏠", layout="wide")
 
 @st.cache_resource
 def load_everything():
@@ -19,16 +19,18 @@ def load_everything():
     collection = chroma_client.create_collection(name="airbnb")
     documents = df["document"].tolist()
     ids = [str(i) for i in df.index]
-    metadatas = df[["name","neighbourhood_group","neighbourhood","room_type","price","minimum_nights","number_of_reviews"]].to_dict("records")
+    metadatas = df[["name","city","neighbourhood","room_type","price","minimum_nights","number_of_reviews"]].to_dict("records")
     embeddings = embed_model.encode(documents, show_progress_bar=False).tolist()
-    collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
+    BATCH = 5000
+    for i in range(0, len(documents), BATCH):
+        collection.add(documents=documents[i:i+BATCH], embeddings=embeddings[i:i+BATCH], metadatas=metadatas[i:i+BATCH], ids=ids[i:i+BATCH])
     return df, embed_model, collection
 
 def extract_filters(client, user_question):
-    system_prompt = """You extract search filters from travel questions about NYC Airbnb listings.
+    system_prompt = """You extract search filters from travel questions about US Airbnb listings.
 Return ONLY valid JSON with these keys (use null if not mentioned):
 - max_price: number or null
-- neighbourhood_group: one of ["Manhattan","Brooklyn","Queens","Bronx","Staten Island"] or null
+- city: one of ["New York City","Los Angeles","San Francisco","Chicago","New Orleans"] or null
 - room_type: one of ["Entire home/apt","Private room","Shared room"] or null
 - search_text: a short phrase capturing the vibe/description
 Return nothing but the JSON object."""
@@ -41,14 +43,14 @@ Return nothing but the JSON object."""
     try:
         return json.loads(raw)
     except:
-        return {"max_price":None,"neighbourhood_group":None,"room_type":None,"search_text":user_question}
+        return {"max_price":None,"city":None,"room_type":None,"search_text":user_question}
 
-def retrieve_filtered(embed_model, collection, query, k=5, max_price=None, neighbourhood_group=None, room_type=None):
+def retrieve_filtered(embed_model, collection, query, k=5, max_price=None, city=None, room_type=None):
     conditions = []
     if max_price is not None:
         conditions.append({"price":{"$lte":max_price}})
-    if neighbourhood_group is not None:
-        conditions.append({"neighbourhood_group":{"$eq":neighbourhood_group}})
+    if city is not None:
+        conditions.append({"city":{"$eq":city}})
     if room_type is not None:
         conditions.append({"room_type":{"$eq":room_type}})
     where = None
@@ -64,15 +66,15 @@ def airbnb_agent(client, embed_model, collection, user_question, k=5):
     results = retrieve_filtered(embed_model, collection,
         query=filters.get("search_text") or user_question, k=k,
         max_price=filters.get("max_price"),
-        neighbourhood_group=filters.get("neighbourhood_group"),
+        city=filters.get("city"),
         room_type=filters.get("room_type"))
     docs = results["documents"][0]
     if not docs:
-        return {"answer":"No listings matched those filters. Try relaxing price or location.","filters":filters,"sources":[]}
+        return {"answer":"No listings matched those filters. Try relaxing price or city.","filters":filters,"sources":[]}
     context = "\n".join([f"[{i+1}] {d}" for i,d in enumerate(docs)])
-    answer_prompt = f"""You are a NYC travel assistant. Recommend listings using ONLY the facts shown.
+    answer_prompt = f"""You are a US travel assistant. Recommend listings using ONLY the facts shown.
 STRICT RULES:
-- Only state facts explicitly present: name, room type, neighbourhood, price, minimum nights, number of reviews.
+- Only state facts explicitly present: name, room type, city, neighbourhood, price, minimum nights, number of reviews.
 - Do NOT add adjectives or qualities not in the data unless literally in the listing name.
 - Do NOT use backticks, code formatting, or special symbols. Plain text only.
 - Cite each listing with [number].
@@ -80,8 +82,8 @@ STRICT RULES:
 FORMAT your answer EXACTLY like this:
 Here are your top options:
 
-- **[1] Listing name** - Room type in Neighbourhood. $X/night, minimum N nights, R reviews.
-- **[2] Listing name** - Room type in Neighbourhood. $X/night, minimum N nights, R reviews.
+- **[1] Listing name** - Room type in City. $X/night, minimum N nights, R reviews.
+- **[2] Listing name** - Room type in City. $X/night, minimum N nights, R reviews.
 
 End with one short sentence of honest guidance.
 
@@ -96,17 +98,17 @@ QUESTION: {user_question}"""
     )
     return {"answer":resp.choices[0].message.content,"filters":filters,"sources":docs}
 
-st.title("🏠 NYC Airbnb Travel Agent")
-st.caption("Agentic RAG over NYC listings — semantic search + metadata filtering + grounded answers")
+st.title("🏠 US Airbnb Travel Agent")
+st.caption("Agentic RAG over 15k listings across 5 US cities — semantic search + metadata filtering + grounded answers")
 
 api_key = st.text_input("Enter your Groq API key", type="password", help="Get a free key at console.groq.com")
 
 if api_key:
     client = Groq(api_key=api_key)
-    with st.spinner("Loading listings and building vector store (first run only)..."):
+    with st.spinner("Loading listings and building vector store (first run only, ~1 min)..."):
         df, embed_model, collection = load_everything()
-    st.success(f"Ready — {collection.count()} listings loaded")
-    question = st.text_input("Ask about a place to stay:", placeholder="e.g. cheap cozy private room in Brooklyn under $80")
+    st.success(f"Ready — {collection.count()} listings loaded across 5 cities")
+    question = st.text_input("Ask about a place to stay:", placeholder="e.g. cheap private room in New Orleans under $80")
     if question:
         try:
             with st.spinner("Thinking..."):
