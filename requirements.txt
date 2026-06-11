@@ -1,0 +1,7 @@
+streamlit
+pandas
+chromadb
+sentence-transformers
+groq==0.11.0
+httpx==0.27.2
+protobuf<5
