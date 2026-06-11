@@ -7,8 +7,9 @@ Built as an end-to-end applied-AI project: data pipeline → vector retrieval �
 ---
 
 ## 🎥 Demo
+<img width="1836" height="790" alt="image" src="https://github.com/user-attachments/assets/008b976c-9a98-4bea-9bdc-de156eaf26ce" />
 
-> _Live app:_ **[link added after deployment]**
+
 
 Example question:
 > *"cheap private room in New Orleans under $80"*
