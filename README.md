@@ -1,4 +1,4 @@
-                                                                  # 🏠 US Airbnb Travel Agent — Agentic RAG
+# 🏠 US Airbnb Travel Agent — Agentic RAG
 
 An AI travel assistant that answers natural-language questions about Airbnb listings across **5 major US cities**. It combines **semantic search** with **structured metadata filtering**, and returns **grounded, cited answers** — no hallucinated listings.
 
