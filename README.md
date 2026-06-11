@@ -1,8 +1,8 @@
-# 🏠 NYC Airbnb Travel Agent — Agentic RAG
+# 🏠 US Airbnb Travel Agent — Agentic RAG
 
-An AI travel assistant that answers natural-language questions about NYC Airbnb listings. It combines **semantic search** with **structured metadata filtering**, and returns **grounded, cited answers** — no hallucinated listings.
+An AI travel assistant that answers natural-language questions about Airbnb listings across **5 major US cities**. It combines **semantic search** with **structured metadata filtering**, and returns **grounded, cited answers** — no hallucinated listings.
 
-Built as an end-to-end applied-AI project: data cleaning → vector retrieval → LLM agent → evaluation → deployment.
+Built as an end-to-end applied-AI project: data pipeline → vector retrieval → LLM agent → evaluation → deployment.
 
 ---
 
@@ -10,12 +10,10 @@ Built as an end-to-end applied-AI project: data cleaning → vector retrieval �
 
 > _Live app:_ **[link added after deployment]**
 
-
-
 Example question:
-> *"cheap cozy private room in Brooklyn under $80"*
+> *"cheap private room in New Orleans under $80"*
 
-The agent extracts filters (`price < $80`, `Brooklyn`, `Private room`), retrieves matching listings, and writes a grounded recommendation citing each source.
+The agent extracts filters (`price < $80`, `New Orleans`, `Private room`), retrieves matching listings, and writes a grounded recommendation citing each source.
 
 ---
 
@@ -23,7 +21,7 @@ The agent extracts filters (`price < $80`, `Brooklyn`, `Private room`), retrieve
 User question
 │
 ▼
-[1] LLM extracts filters   → price, neighbourhood, room type, vibe
+[1] LLM extracts filters   → price, city, room type, vibe
 │
 ▼
 [2] Hybrid retrieval       → metadata filter (ChromaDB) + semantic search (embeddings)
@@ -34,7 +32,7 @@ User question
 ▼
 Cited recommendation
 
-**Why "agentic"?** The model doesn't just embed-and-match. It *decides* which structured filters apply to a plain-English question, then constrains retrieval accordingly — fixing the classic RAG failure where semantic search ignores hard constraints like price.
+**Why "agentic"?** The model doesn't just embed-and-match. It *decides* which structured filters apply to a plain-English question, then constrains retrieval accordingly — fixing the classic RAG failure where semantic search ignores hard constraints like price or city.
 
 ---
 
@@ -45,33 +43,32 @@ Cited recommendation
 | LLM | Llama 3.3 70B (via Groq) |
 | Embeddings | sentence-transformers (`all-MiniLM-L6-v2`) |
 | Vector store | ChromaDB |
-| Evaluation | RAGAS (faithfulness, answer relevancy) |
+| Evaluation | Custom faithfulness harness (LLM-as-judge) |
 | App | Streamlit |
-| Data | NYC Airbnb Open Data (~49k listings, cleaned to ~4.9k) |
+| Data | US Airbnb Open Data — 5 cities |
 
 ---
 
 ## 📊 Evaluation
 
-Measured with RAGAS on a held-out question set:
+Faithfulness measures how strictly each answer stays grounded in retrieved listings (no invented details).
 
 | Metric | Score |
 |--------|-------|
-| Answer Relevancy | 0.88 |
 | Faithfulness (baseline) | 0.60 |
-| Faithfulness (after prompt hardening) | _updating_ |
+| Faithfulness (after prompt hardening) | **0.92** |
 
-**Key engineering finding:** baseline faithfulness was dragged down by the LLM *embellishing* answers with qualities not in the data ("great location", "highly recommended"). Constraining the generation prompt to state only retrieved facts measurably improved faithfulness — a concrete example of evaluation-driven iteration.
+**Key engineering finding:** baseline faithfulness was dragged down by the LLM *embellishing* answers with qualities not in the data ("great location", "highly recommended"). Constraining the generation prompt to state only retrieved facts raised faithfulness from **0.60 → 0.92** — a concrete example of evaluation-driven iteration.
 
 ---
 
 ## 🧹 Data Engineering Notes
 
-Raw Airbnb data contained quality issues handled before serving:
-- Listings priced at **$0/night** (invalid) → removed
-- Listings with **300-night minimums** (not realistic short stays) → removed
-- Missing review fields → filled with 0
-- Final clean set: ~4,900 listings
+Built a pipeline from raw open data to a clean, balanced index:
+- Started from **232k** US listings → filtered to 5 target cities → **94k** clean rows
+- Removed invalid rows: **$0/night** listings, **300-night minimums**
+- Balanced sample of **3,000 listings per city** → **15,000 indexed**
+- Cities: New York City, Los Angeles, San Francisco, Chicago, New Orleans
 
 ---
 
@@ -79,8 +76,8 @@ Raw Airbnb data contained quality issues handled before serving:
 
 ```bash
 # clone
-git clone https://github.com/Deepak420-GrandMaster/airbnb-agentic-rag.git
-cd airbnb-agentic-rag
+git clone https://github.com/Deepak420-GrandMaster/Airbnb-agentic-rag.git
+cd Airbnb-agentic-rag
 
 # environment
 python3.12 -m venv venv
@@ -97,14 +94,15 @@ You'll need a free Groq API key from [console.groq.com](https://console.groq.com
 
 ## 🔭 Possible extensions
 
-- Add review-text retrieval (richer semantic matching)
+- Add review-text retrieval for richer semantic matching
 - Multi-turn conversation memory
-- Expand beyond NYC to multi-city data
-- Swap in a reranker for retrieval precision
+- Expand to international cities
+- Add a reranker for retrieval precision
+- Integrate hotels / flights as additional agent tools
 
 ---
 
 ## 👤 Author
 
-**Deepak Prajapati** 
+**Deepak Prajapati**
 [LinkedIn](https://www.linkedin.com/in/deepak-prajapati-695963204) · [GitHub](https://github.com/Deepak420-GrandMaster)
